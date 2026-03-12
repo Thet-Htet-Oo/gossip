@@ -21,6 +21,7 @@ import {
   Paper
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
 import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import SendIcon from "@mui/icons-material/Send";
@@ -166,6 +167,7 @@ export default function AllPost() {
   const [replyOpen, setReplyOpen] = useState<{[key:number]:boolean}>({});
   const [replyText, setReplyText] = useState<{[key:number]:string}>({});
   
+  // Delete dialogs
   const [deletePostDialog, setDeletePostDialog] = useState<{ open: boolean; postId: number | null }>({
     open: false,
     postId: null
@@ -175,6 +177,24 @@ export default function AllPost() {
     commentId: null,
     postId: null
   });
+
+  // Edit dialogs
+  const [editPostDialog, setEditPostDialog] = useState<{ open: boolean; post: Post | null }>({
+    open: false,
+    post: null
+  });
+  const [editCommentDialog, setEditCommentDialog] = useState<{ open: boolean; comment: Comment | null; postId: number | null }>({
+    open: false,
+    comment: null,
+    postId: null
+  });
+
+  // Edit form data
+  const [editPostData, setEditPostData] = useState<{ title: string; content: string }>({
+    title: "",
+    content: ""
+  });
+  const [editCommentData, setEditCommentData] = useState<string>("");
 
   const navigate = useNavigate();
 
@@ -277,13 +297,13 @@ export default function AllPost() {
 
     try {
       const res = await authFetch(`${API_URL}/api/comments`, {
-      method: "POST",
-      body: JSON.stringify({
-        post_id: postId,
-        content: replyText[parentId],
-        parent_comment_id: parentId
-      }),
-    });
+        method: "POST",
+        body: JSON.stringify({
+          post_id: postId,
+          content: replyText[parentId],
+          parent_comment_id: parentId
+        }),
+      });
 
       const created = await res.json();
 
@@ -386,8 +406,8 @@ export default function AllPost() {
 
     try {
       const res = await authFetch(`${API_URL}/api/comments/${commentId}`, {
-      method: "DELETE",
-    });
+        method: "DELETE",
+      });
 
       if (!res.ok) {
         const error = await res.json();
@@ -432,34 +452,99 @@ export default function AllPost() {
     }
   };
 
+  // Post edit functions
+  const openEditPostDialog = (post: Post) => {
+    setEditPostDialog({ open: true, post });
+    setEditPostData({ title: post.title, content: post.content });
+  };
+
+  const handleUpdatePost = async () => {
+    if (!editPostDialog.post) return;
+
+    try {
+      const res = await authFetch(`${API_URL}/api/posts/${editPostDialog.post.id}`, {
+        method: "PUT",
+        body: JSON.stringify(editPostData)
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        alert(error.error || "Failed to update post");
+        return;
+      }
+
+      const updatedPost = await res.json();
+      setPosts(prev => prev.map(p => p.id === updatedPost.id ? updatedPost : p));
+      setEditPostDialog({ open: false, post: null });
+    } catch (err) {
+      console.error("Failed to update post:", err);
+    }
+  };
+
+  // Comment edit functions
+  const openEditCommentDialog = (comment: Comment, postId: number) => {
+    setEditCommentDialog({ open: true, comment, postId });
+    setEditCommentData(comment.content);
+  };
+
+  const handleUpdateComment = async () => {
+    if (!editCommentDialog.comment || !editCommentDialog.postId) return;
+
+    try {
+      const res = await authFetch(`${API_URL}/api/comments/${editCommentDialog.comment.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          content: editCommentData
+        })
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        alert(error.error || "Failed to update comment");
+        return;
+      }
+
+      const updatedComment = await res.json();
+      setComments(prev => ({
+        ...prev,
+        [editCommentDialog.postId!]: prev[editCommentDialog.postId!].map(c => 
+          c.id === updatedComment.id ? updatedComment : c
+        )
+      }));
+      setEditCommentDialog({ open: false, comment: null, postId: null });
+    } catch (err) {
+      console.error("Failed to update comment:", err);
+    }
+  };
+
   const handleToggleLike = async (postId: number) => {
-      if (!user) return;
+    if (!user) return;
 
-      try {
-        const res = await authFetch(`${API_URL}/api/posts/${postId}/like`, {
-          method: "POST",
-          body: JSON.stringify({}),
-        });
+    try {
+      const res = await authFetch(`${API_URL}/api/posts/${postId}/like`, {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
 
-        if (!res.ok) {
-          if (res.status === 401) {
-            console.error("Unauthorized - token might be expired");
-            return;
-          }
-          console.error(`Failed to toggle like, status: ${res.status}`);
+      if (!res.ok) {
+        if (res.status === 401) {
+          console.error("Unauthorized - token might be expired");
           return;
         }
-
-        const data = await res.json();
-        setLikes(prev => ({
-          ...prev,
-          [postId]: { count: data.likes || 0, liked: data.liked || false },
-        }));
-      } catch (error) {
-        console.error("Error toggling like:", error);
+        console.error(`Failed to toggle like, status: ${res.status}`);
+        return;
       }
-    };
-    
+
+      const data = await res.json();
+      setLikes(prev => ({
+        ...prev,
+        [postId]: { count: data.likes || 0, liked: data.liked || false },
+      }));
+    } catch (error) {
+      console.error("Error toggling like:", error);
+    }
+  };
+
   const displayedPosts = selectedTopic 
     ? posts.filter((p) => p.topic_id === selectedTopic) 
     : posts;
@@ -711,6 +796,17 @@ export default function AllPost() {
               }}
             >
               {user && user.username === post.username && (
+                <Box sx={{ position: "absolute", top: 16, right: 56, display: "flex", gap: 1 }}>
+                  <IconButton
+                    size="small"
+                    color="primary"
+                    onClick={() => openEditPostDialog(post)}
+                  >
+                    <EditIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              )}
+              {user && user.username === post.username && (
                 <IconButton
                   size="small"
                   color="error"
@@ -802,20 +898,28 @@ export default function AllPost() {
                         }}
                       >
                         {user && user.id === c.user_id && (
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() =>
-                              setDeleteCommentDialog({
-                                open: true,
-                                commentId: c.id,
-                                postId: post.id
-                              })
-                            }
-                            sx={{ position: "absolute", right: 8, top: 8 }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
+                          <Box sx={{ position: "absolute", right: 8, top: 8, display: "flex", gap: 0.5 }}>
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => openEditCommentDialog(c, post.id)}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() =>
+                                setDeleteCommentDialog({
+                                  open: true,
+                                  commentId: c.id,
+                                  postId: post.id
+                                })
+                              }
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
                         )}
 
                         <Typography variant="body2" sx={{ mb: 1 }}>
@@ -882,20 +986,28 @@ export default function AllPost() {
                             }}
                           >
                             {user && user.id === r.user_id && (
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() =>
-                                  setDeleteCommentDialog({
-                                    open: true,
-                                    commentId: r.id,
-                                    postId: post.id
-                                  })
-                                }
-                                sx={{ position: "absolute", right: 6, top: 6 }}
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
+                              <Box sx={{ position: "absolute", right: 6, top: 6, display: "flex", gap: 0.5 }}>
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => openEditCommentDialog(r, post.id)}
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() =>
+                                    setDeleteCommentDialog({
+                                      open: true,
+                                      commentId: r.id,
+                                      postId: post.id
+                                    })
+                                  }
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Box>
                             )}
 
                             <Typography variant="body2" sx={{ mb: 1 }}>
@@ -924,6 +1036,7 @@ export default function AllPost() {
         </Box>
       </Box>
 
+      {/* Delete Post Dialog */}
       <Dialog
         open={deletePostDialog.open}
         onClose={() => setDeletePostDialog({ open: false, postId: null })}
@@ -954,6 +1067,7 @@ export default function AllPost() {
         </DialogActions>
       </Dialog>
 
+      {/* Delete Comment Dialog */}
       <Dialog
         open={deleteCommentDialog.open}
         onClose={() => setDeleteCommentDialog({ open: false, commentId: null, postId: null })}
@@ -981,6 +1095,123 @@ export default function AllPost() {
             size="large"
           >
             Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Post Dialog */}
+      <Dialog
+        open={editPostDialog.open}
+        onClose={() => setEditPostDialog({ open: false, post: null })}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ color: '#2e7d32', fontSize: '1.5rem' }}>Edit Post</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            label="Title"
+            margin="normal"
+            value={editPostData.title}
+            onChange={(e) => setEditPostData(prev => ({ ...prev, title: e.target.value }))}
+            sx={{
+              '& .MuiOutlinedInput-root': { 
+                '&.Mui-focused fieldset': { 
+                  borderColor: '#2e7d32',
+                  borderWidth: 2
+                } 
+              },
+              '& .MuiInputLabel-root.Mui-focused': { 
+                color: '#2e7d32',
+                fontWeight: 'bold'
+              }
+            }}
+          />
+          <TextField
+            fullWidth
+            label="Content"
+            margin="normal"
+            multiline
+            rows={4}
+            value={editPostData.content}
+            onChange={(e) => setEditPostData(prev => ({ ...prev, content: e.target.value }))}
+            sx={{
+              '& .MuiOutlinedInput-root': { 
+                '&.Mui-focused fieldset': { 
+                  borderColor: '#2e7d32',
+                  borderWidth: 2
+                } 
+              },
+              '& .MuiInputLabel-root.Mui-focused': { 
+                color: '#2e7d32',
+                fontWeight: 'bold'
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button 
+            onClick={() => setEditPostDialog({ open: false, post: null })} 
+            size="large"
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleUpdatePost} 
+            variant="contained" 
+            size="large"
+            sx={{ backgroundColor: '#2e7d32', '&:hover': { backgroundColor: '#1b5e20' } }}
+          >
+            Update
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Comment Dialog */}
+      <Dialog
+        open={editCommentDialog.open}
+        onClose={() => setEditCommentDialog({ open: false, comment: null, postId: null })}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ color: '#2e7d32', fontSize: '1.5rem' }}>Edit Comment</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            label="Comment"
+            margin="normal"
+            multiline
+            rows={3}
+            value={editCommentData}
+            onChange={(e) => setEditCommentData(e.target.value)}
+            sx={{
+              '& .MuiOutlinedInput-root': { 
+                '&.Mui-focused fieldset': { 
+                  borderColor: '#2e7d32',
+                  borderWidth: 2
+                } 
+              },
+              '& .MuiInputLabel-root.Mui-focused': { 
+                color: '#2e7d32',
+                fontWeight: 'bold'
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button 
+            onClick={() => setEditCommentDialog({ open: false, comment: null, postId: null })} 
+            size="large"
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleUpdateComment} 
+            variant="contained" 
+            size="large"
+            sx={{ backgroundColor: '#2e7d32', '&:hover': { backgroundColor: '#1b5e20' } }}
+          >
+            Update
           </Button>
         </DialogActions>
       </Dialog>
