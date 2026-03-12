@@ -30,6 +30,7 @@ func main() {
 
 		AllowOrigins: []string{
 			"http://localhost:3000", // React dev server
+			"https://gossip-frontend.onrender.com"
 		},
 		AllowMethods: []string{
 			"GET",
