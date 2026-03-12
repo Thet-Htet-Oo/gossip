@@ -34,7 +34,7 @@ export default function Topics() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const API_URL = "http://localhost:8000";
+  const API_URL = "https://gossip-backend-1nwv.onrender.com";
 
  
   const authFetch = async (url: string, options: RequestInit = {}) => {
@@ -70,11 +70,7 @@ export default function Topics() {
         return;
       }
 
-      const res = await fetch(`${API_URL}/api/topics`, {
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
-      });
+      const res = await authFetch(`${API_URL}/api/topics`);
       
       if (!res.ok) {
         if (res.status === 401) {
@@ -134,12 +130,8 @@ export default function Topics() {
         return;
       }
 
-      const res = await fetch(`${API_URL}/api/topics`, {
+      const res = await authFetch(`${API_URL}/api/topics`, {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
         body: JSON.stringify(newTopic),
       });
 
@@ -181,11 +173,8 @@ export default function Topics() {
         return;
       }
 
-      const res = await fetch(`${API_URL}/api/topics/${topicId}`, { 
+      const res = await authFetch(`${API_URL}/api/topics/${topicId}`, {
         method: "DELETE",
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
       });
       
       if (!res.ok) {

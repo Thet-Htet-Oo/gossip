@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { TextField, Button, Container, Typography, Box, Paper } from "@mui/material";
 import { LoginForm } from "../types/auth";
 import axios from "axios";
+import api from "../api/api";
 import { useNavigate } from "react-router-dom";
 
 const LoginPage: React.FC = () => {
@@ -20,9 +21,7 @@ const LoginPage: React.FC = () => {
     try {
       console.log("Attempting login with username:", form.username);
 
-      const res = await axios.post("http://localhost:8000/login", {
-        username: form.username
-      });
+      const res = await api.post("/login", { username: form.username });
 
       console.log("Login successful:", res.data);
 
