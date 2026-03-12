@@ -70,10 +70,12 @@ func main() {
 		api.POST("/posts", handlers.CreatePost)
 		api.DELETE("/posts/:id", handlers.DeletePost)
 		api.GET("/posts/user/:user_id", handlers.GetUserPosts)
+		api.PUT("/posts/:id", handlers.UpdatePost)
 
 		api.GET("/comments/:post_id", handlers.GetComments)
 		api.POST("/comments", handlers.CreateComment)
 		api.DELETE("/comments/:id", handlers.DeleteComment)
+		api.PUT("/comments/:id", handlers.UpdateComment)
 
 		api.GET("/posts/:post_id/likes", handlers.GetPostLikes)
 		api.POST("/posts/:post_id/like", handlers.ToggleLike)

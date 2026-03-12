@@ -287,3 +287,78 @@ func ToggleLike(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"likes": count, "liked": !liked})
 }
+
+// UpdatePost updates the title and content of a post
+func UpdatePost(c *gin.Context) {
+	postIDStr := c.Param("id")
+	postID, err := strconv.Atoi(postIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid post ID"})
+		return
+	}
+
+	userIDValue, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	var userID int
+	switch v := userIDValue.(type) {
+	case float64:
+		userID = int(v)
+	case int:
+		userID = v
+	default:
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user ID type"})
+		return
+	}
+
+	var ownerID int
+	err = db.DB.QueryRow("SELECT user_id FROM posts WHERE id=$1", postID).Scan(&ownerID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "post not found"})
+		return
+	}
+
+	if ownerID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "you can only update your own posts"})
+		return
+	}
+
+	var input struct {
+		Title   string `json:"title"`
+		Content string `json:"content"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+
+	// Update post
+	_, err = db.DB.Exec(
+		"UPDATE posts SET title=$1, content=$2 WHERE id=$3",
+		input.Title, input.Content, postID,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update post"})
+		return
+	}
+
+	// Return updated post
+	var updatedPost Post
+	err = db.DB.QueryRow(
+		`SELECT p.id, p.title, p.content, u.username, p.topic_id, p.created_at
+		FROM posts p
+		LEFT JOIN users u ON p.user_id = u.id
+		WHERE p.id = $1`, postID,
+	).Scan(&updatedPost.ID, &updatedPost.Title, &updatedPost.Content, &updatedPost.Username, &updatedPost.TopicID, &updatedPost.CreatedAt)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch updated post"})
+		return
+	}
+
+	c.JSON(http.StatusOK, updatedPost)
+}

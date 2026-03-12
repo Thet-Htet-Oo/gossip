@@ -3,6 +3,7 @@ package handlers
 import (
 	"gossip-backend/db"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -146,4 +147,84 @@ func DeleteComment(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Comment deleted successfully"})
+}
+
+// UpdateComment updates the content of a comment
+func UpdateComment(c *gin.Context) {
+	commentIDStr := c.Param("id")
+
+	commentID, err := strconv.Atoi(commentIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid comment ID"})
+		return
+	}
+
+	userIDValue, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userID := 0
+	switch v := userIDValue.(type) {
+	case float64:
+		userID = int(v)
+	case int:
+		userID = v
+	default:
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user ID type"})
+		return
+	}
+
+	var ownerID int
+	err = db.DB.QueryRow("SELECT user_id FROM comments WHERE id=$1", commentID).Scan(&ownerID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "comment not found"})
+		return
+	}
+
+	if ownerID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "you can only update your own comments"})
+		return
+	}
+
+	var input struct {
+		Content string `json:"content"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil || input.Content == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid input, content required"})
+		return
+	}
+
+	// Update comment in database
+	_, err = db.DB.Exec("UPDATE comments SET content=$1 WHERE id=$2", input.Content, commentID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update comment"})
+		return
+	}
+
+	// Return updated comment
+	var updated Comment
+	err = db.DB.QueryRow(`
+		SELECT c.id, c.post_id, c.user_id, u.username, c.content, c.parent_comment_id, c.created_at
+		FROM comments c
+		LEFT JOIN users u ON c.user_id=u.id
+		WHERE c.id=$1
+	`, commentID).Scan(
+		&updated.ID,
+		&updated.PostID,
+		&updated.UserID,
+		&updated.Username,
+		&updated.Content,
+		&updated.ParentCommentID,
+		&updated.CreatedAt,
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch updated comment"})
+		return
+	}
+
+	c.JSON(http.StatusOK, updated)
 }
