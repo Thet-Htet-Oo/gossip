@@ -37,7 +37,7 @@ func main() {
 			"POST",
 			"PUT",
 			"DELETE",
-			"OPTIONS", 
+			"OPTIONS",
 		},
 		AllowHeaders: []string{
 			"Origin",
@@ -45,16 +45,16 @@ func main() {
 			"Content-Length",
 			"Accept-Encoding",
 			"X-CSRF-Token",
-			"Authorization", 
+			"Authorization",
 			"Accept",
 			"Cache-Control",
 			"X-Requested-With",
 		},
-		AllowCredentials: true,           
-		MaxAge:           12 * time.Hour, 
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
 	}))
 
-	// Public routes 
+	// Public routes
 	r.POST("/login", handlers.Login)
 
 	// Protected routes
@@ -64,6 +64,7 @@ func main() {
 		api.GET("/topics", handlers.GetTopics)
 		api.POST("/topics", handlers.CreateTopic)
 		api.DELETE("/topics/:id", handlers.DeleteTopic)
+		api.PUT("/topics/:id", handlers.UpdateTopic)
 
 		api.GET("/posts", handlers.GetPosts)
 		api.POST("/posts", handlers.CreatePost)
