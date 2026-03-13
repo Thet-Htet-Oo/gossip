@@ -9,8 +9,8 @@ https://gossip-frontend.onrender.com
 https://gossip-backend-1nwv.onrender.com
 
 #Live development
-You can open the link https://gossip-backend-1nwv.onrender.com first in the browser. If you see 404 , then you are ready your backend
-and you can easily try my app with the link https://gossip-frontend.onrender.com .
+You can open the link https://gossip-backend-1nwv.onrender.com first in the browser. If you see 404 , then you are ready your backend.
+And you can easily try my app with the link https://gossip-frontend.onrender.com .
 
 The backend and frontend are deployed using Render's free hosting tier.
 Due to inactivity, the backend service may enter a sleep state. When accessed again, the server may take a short time to restart.
@@ -25,12 +25,12 @@ You can also try localhost since I provided below.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 Use of AI
 
-- Since I am not friendly to GO and TypeScript, I have to ask the AI for step by step guideline to learn first.
+- Since I am not familiar to GO and TypeScript, I have to ask the AI for step by step guideline to learn first.
 - Then, I watched YouTube videos and wrote my codes.
 - When I didn't know how to write, I used AI to teach me.
 - When I faced with errors, I tried to find the solution myself first. If it was a very complex and I couldn't solve it anymore
   then, I asked AI why this error happened and what was the couse of this errors . I read the explanation from AI and solved the errors.
-- I also used AI to review my code and give me better suggesstions.
+- I also used AI to review my code and give me better suggestions.
   
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 Features
