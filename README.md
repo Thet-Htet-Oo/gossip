@@ -4,11 +4,11 @@
 **Thet Htet Oo**
 
 ## GitHub Repository
-[GitHub Repository](https://github.com/Thet-Htet-Oo/gossip.git)
+[https://github.com/Thet-Htet-Oo/gossip.git](https://github.com/Thet-Htet-Oo/gossip.git)
 
 ## Live App
-- [Frontend](https://gossip-frontend.onrender.com)
-- [Backend](https://gossip-backend-1nwv.onrender.com)
+- [https://gossip-frontend.onrender.com](https://gossip-frontend.onrender.com)
+- [https://gossip-backend-1nwv.onrender.com](https://gossip-backend-1nwv.onrender.com)
 
 ## Live development
 You can open the link [https://gossip-backend-1nwv.onrender.com](https://gossip-backend-1nwv.onrender.com) first in the browser. If you see **404** , then you are ready your backend.
